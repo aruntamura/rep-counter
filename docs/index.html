@@ -1,0 +1,1436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ECEEEA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#15191C" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Reps">
+<title>Rep counter</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #ECEEEA;          /* gym chalk */
+  --surface: #F8F9F6;
+  --ink: #1D2328;
+  --muted: #5B656C;
+  --rule: #C7CDC6;
+  --lift: #C8102E;        /* red bumper plate: concentric, lifting */
+  --lower: #0B4FB3;       /* blue bumper plate: eccentric, lowering */
+  --go: #F5C400;          /* yellow bumper plate: the one action */
+  --go-ink: #1D2328;
+  --display: "Big Shoulders Display", "Big Shoulders", "Barlow Condensed", "Roboto Condensed", "Arial Narrow", sans-serif;
+  --text: "Atkinson Hyperlegible", "Atkinson Hyperlegible Next", system-ui, -apple-system, "Segoe UI", sans-serif;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #15191C;        /* rubber floor */
+    --surface: #1E2327;
+    --ink: #ECEEEA;
+    --muted: #9AA4AA;
+    --rule: #353C41;
+    --lift: #FF5468;
+    --lower: #5C9BFF;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #15191C; --surface: #1E2327; --ink: #ECEEEA; --muted: #9AA4AA; --rule: #353C41;
+  --lift: #FF5468; --lower: #5C9BFF;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; min-height: 100%;
+  background: var(--bg); color: var(--ink);
+  font-family: var(--text); font-size: 17px; line-height: 1.45;
+  -webkit-tap-highlight-color: transparent;
+}
+main { max-width: 30rem; margin: 0 auto; padding: 0 1.25rem 2rem; }
+[hidden] { display: none !important; }
+h1, h2 { font-family: var(--display); font-weight: 800; letter-spacing: 0.01em; line-height: 1; margin: 0; }
+p { margin: 0; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--lower); outline-offset: 3px; }
+
+/* ---------- header ---------- */
+.bar { display: flex; align-items: baseline; justify-content: space-between; padding: 1.1rem 0 0.4rem; }
+.wordmark { font-family: var(--display); font-weight: 800; font-size: 1.6rem; }
+.link { background: none; border: 0; padding: 0.4rem 0; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-size: 0.95rem; }
+
+/* ---------- setup ---------- */
+.lede { color: var(--muted); margin: 0.2rem 0 1.4rem; max-width: 34ch; }
+fieldset { border: 0; margin: 0 0 1.4rem; padding: 0; }
+legend { font-weight: 700; margin-bottom: 0.5rem; padding: 0; }
+.exercise { display: grid; gap: 0.5rem; }
+.choice { position: relative; display: block; cursor: pointer; }
+.choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.choice .body {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0.1rem 1rem;
+  padding: 0.85rem 1rem; border: 2px solid var(--rule); border-radius: 14px; background: var(--surface);
+}
+.choice .name { font-family: var(--display); font-weight: 800; font-size: 1.9rem; line-height: 1; }
+.choice .where { grid-column: 1; color: var(--muted); font-size: 0.95rem; }
+.choice .plate { grid-row: 1 / span 2; grid-column: 2; width: 34px; height: 34px; border-radius: 50%; border: 7px solid var(--rule); }
+.choice input:checked + .body { border-color: var(--ink); }
+.choice input:checked + .body .plate { border-color: var(--go); background: var(--ink); }
+.choice input:focus-visible + .body { outline: 3px solid var(--lower); outline-offset: 2px; }
+.segmented { display: inline-flex; border: 2px solid var(--rule); border-radius: 999px; padding: 3px; background: var(--surface); }
+.segmented label { position: relative; }
+.segmented input { position: absolute; opacity: 0; inset: 0; margin: 0; }
+.segmented span { display: block; padding: 0.45rem 1.1rem; border-radius: 999px; cursor: pointer; }
+.segmented input:checked + span { background: var(--ink); color: var(--bg); font-weight: 700; }
+.segmented input:focus-visible + span { outline: 3px solid var(--lower); outline-offset: 2px; }
+.hint { color: var(--muted); font-size: 0.9rem; margin-top: 0.4rem; }
+.toggles { display: grid; gap: 0.2rem; margin-bottom: 1.6rem; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.55rem 0; border-bottom: 1px solid var(--rule); cursor: pointer; }
+.toggle input { appearance: none; -webkit-appearance: none; width: 52px; height: 32px; border-radius: 999px; background: var(--rule); position: relative; cursor: pointer; flex: none; margin: 0; transition: background 0.15s; }
+.toggle input::after { content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--surface); transition: transform 0.15s; }
+.toggle input:checked { background: var(--ink); }
+.toggle input:checked::after { transform: translateX(20px); }
+.toggle small { display: block; color: var(--muted); font-size: 0.85rem; }
+.primary {
+  display: block; width: 100%; min-height: 4.2rem; border: 0; border-radius: 18px; cursor: pointer;
+  background: var(--go); color: var(--go-ink);
+  font-family: var(--display); font-weight: 800; font-size: 2rem; letter-spacing: 0.01em;
+}
+.primary:active { transform: translateY(1px); }
+.secondary { display: block; width: 100%; margin-top: 0.8rem; min-height: 3.2rem; border-radius: 14px; border: 2px solid var(--rule); background: transparent; cursor: pointer; font-weight: 700; }
+.notice { margin: 1rem 0 0; padding: 0.9rem 1rem; border-radius: 12px; background: var(--surface); border-left: 6px solid var(--lift); }
+.notice strong { display: block; margin-bottom: 0.2rem; }
+
+/* ---------- countdown ---------- */
+.stage { min-height: calc(100vh - 8rem); min-height: calc(100dvh - 8rem); display: grid; place-content: center; text-align: center; gap: 1rem; }
+.countnum { font-family: var(--display); font-weight: 800; font-size: min(48vh, 70vw); line-height: 0.85; font-variant-numeric: tabular-nums; }
+.stage p { color: var(--muted); font-size: 1.1rem; max-width: 22ch; margin: 0 auto; }
+
+/* ---------- live ---------- */
+.live { display: grid; grid-template-columns: 1fr 44px; gap: 0 1rem; align-items: center; margin-top: 0.5rem; }
+.repnum {
+  font-family: var(--display); font-weight: 800; line-height: 0.8; font-variant-numeric: tabular-nums;
+  font-size: min(42vh, 62vw); text-align: center; transform-origin: 50% 85%;
+}
+.repnum.bump { animation: drop 0.28s ease-out; }
+@keyframes drop { 0% { transform: translateY(-6%) scale(1.04); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .repnum.bump { animation: none; } .toggle input, .toggle input::after { transition: none; } }
+.track { position: relative; height: min(40vh, 58vw); width: 12px; margin: 0 auto; border-radius: 6px; background: var(--rule); }
+.puck {
+  position: absolute; left: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+  border: 9px solid var(--muted); background: var(--bg); top: 0;
+}
+.puck.lift { border-color: var(--lift); }
+.puck.lower { border-color: var(--lower); }
+.livemeta { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin: 0.6rem 0 0.3rem; }
+.state { font-family: var(--display); font-weight: 800; font-size: 1.7rem; }
+.state.lift { color: var(--lift); }
+.state.lower { color: var(--lower); }
+.tempo { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+canvas { display: block; width: 100%; }
+#trace { height: 120px; margin: 0.4rem 0 1rem; }
+.hold {
+  position: relative; overflow: hidden; display: block; width: 100%; min-height: 4rem; border-radius: 18px; cursor: pointer;
+  border: 2px solid var(--ink); background: transparent; font-weight: 700; font-size: 1.1rem; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.hold .fill { position: absolute; inset: 0; background: var(--ink); transform-origin: left; transform: scaleX(0); }
+.hold.holding .fill { transform: scaleX(1); transition: transform 1.2s linear; }
+.hold .label { position: relative; mix-blend-mode: difference; color: #fff; }
+.banner { margin-top: 0.8rem; color: var(--muted); font-size: 0.9rem; }
+
+/* ---------- results ---------- */
+.result-head { display: flex; align-items: flex-end; gap: 0.8rem; margin: 0.6rem 0 1.2rem; }
+.bignum { font-family: var(--display); font-weight: 800; font-size: 8.5rem; line-height: 0.8; font-variant-numeric: tabular-nums; }
+.result-head .what { padding-bottom: 0.3rem; }
+.result-head .what h2 { font-size: 2.1rem; }
+.result-head .what p { color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1.4rem; }
+.stat { border-top: 3px solid var(--ink); padding-top: 0.4rem; }
+.stat b { display: block; font-family: var(--display); font-weight: 800; font-size: 1.9rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 0.85rem; }
+.section-title { font-weight: 700; margin: 1.4rem 0 0.4rem; }
+#setplot { height: 190px; }
+.legend { display: flex; gap: 1.2rem; color: var(--muted); font-size: 0.85rem; margin-top: 0.4rem; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 0.35rem; vertical-align: -1px; }
+.reps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; }
+.reps li { display: grid; grid-template-columns: 1.6rem 1fr auto; align-items: center; gap: 0.6rem; font-variant-numeric: tabular-nums; }
+.reps .n { color: var(--muted); text-align: right; }
+.reps .bars { display: flex; height: 14px; gap: 2px; }
+.reps .bars span { display: block; height: 100%; border-radius: 3px; }
+.reps .d { background: var(--lower); }
+.reps .u { background: var(--lift); }
+.reps .s { font-size: 0.88rem; color: var(--muted); text-align: right; white-space: nowrap; }
+details { margin-top: 1.4rem; border-top: 1px solid var(--rule); padding-top: 0.8rem; }
+summary { cursor: pointer; font-weight: 700; }
+.methods { margin: 0.8rem 0; display: grid; gap: 0.5rem; }
+.methods div { display: grid; grid-template-columns: 1fr auto; gap: 1rem; }
+.methods b { font-variant-numeric: tabular-nums; }
+.methods small { grid-column: 1 / -1; color: var(--muted); }
+#spec { height: 130px; }
+.actions { display: grid; gap: 0.6rem; margin-top: 1.6rem; }
+.status { color: var(--muted); font-size: 0.9rem; min-height: 1.3em; }
+
+/* ---------- history ---------- */
+.history { list-style: none; margin: 0.8rem 0 0; padding: 0; }
+.history li { display: grid; grid-template-columns: 3.2rem 1fr; gap: 0.2rem 0.8rem; padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
+.history .hn { font-family: var(--display); font-weight: 800; font-size: 2.4rem; line-height: 1; grid-row: span 2; font-variant-numeric: tabular-nums; }
+.history .hw { font-weight: 700; }
+.history .hd { color: var(--muted); font-size: 0.9rem; }
+.empty { color: var(--muted); margin-top: 1rem; }
+</style>
+</head>
+<body>
+<main>
+  <div class="bar">
+    <span class="wordmark">Rep counter</span>
+    <button class="link" id="historyBtn" type="button">Past sets</button>
+  </div>
+
+  <!-- Setup -->
+  <section id="setup">
+    <p class="lede">Put your phone on your body, do a set, and it counts each rep out loud as you go.</p>
+    <fieldset>
+      <legend>Exercise</legend>
+      <div class="exercise" id="exercise"></div>
+    </fieldset>
+    <fieldset>
+      <legend>The set starts at the</legend>
+      <div class="segmented" role="radiogroup">
+        <label><input type="radio" name="start" value="top"><span>Top</span></label>
+        <label><input type="radio" name="start" value="bottom"><span>Bottom</span></label>
+      </div>
+      <p class="hint" id="startHint"></p>
+    </fieldset>
+    <div class="toggles">
+      <label class="toggle"><span>Count out loud<small>Turn off silent mode so you can hear it</small></span><input type="checkbox" id="speak"></label>
+      <label class="toggle"><span>Stop when I’m done<small>Ends the set after a few seconds of stillness</small></span><input type="checkbox" id="autostop"></label>
+    </div>
+    <button class="primary" id="startBtn" type="button">Start set</button>
+    <button class="secondary" id="simBtn" type="button">Try it without a phone</button>
+    <div class="notice" id="setupError" hidden role="alert"></div>
+  </section>
+
+  <!-- Countdown -->
+  <section id="countdown" hidden>
+    <div class="stage">
+      <div class="countnum" id="countNum" aria-live="assertive">5</div>
+      <p id="countPlace"></p>
+    </div>
+  </section>
+
+  <!-- Live -->
+  <section id="live" hidden>
+    <div class="live">
+      <div class="repnum" id="repNum" aria-live="polite">0</div>
+      <div class="track" aria-hidden="true"><div class="puck" id="puck"></div></div>
+    </div>
+    <div class="livemeta">
+      <span class="state" id="moveState">Ready</span>
+      <span class="tempo" id="lastTempo"></span>
+    </div>
+    <canvas id="trace" aria-hidden="true"></canvas>
+    <button class="hold" id="holdBtn" type="button"><span class="fill"></span><span class="label">Hold to stop</span></button>
+    <p class="banner" id="liveBanner"></p>
+  </section>
+
+  <!-- Results -->
+  <section id="results" hidden>
+    <div class="result-head">
+      <div class="bignum" id="resNum">0</div>
+      <div class="what"><h2 id="resWhat">Squats</h2><p id="resWhen"></p></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="resRate">–</b><span>reps per minute</span></div>
+      <div class="stat"><b id="resDown">–</b><span>seconds lowering</span></div>
+      <div class="stat"><b id="resUp">–</b><span>seconds lifting</span></div>
+    </div>
+    <p class="empty" id="resEmpty" hidden></p>
+    <p class="section-title">The set</p>
+    <canvas id="setplot" aria-label="Plot of the set with each rep marked"></canvas>
+    <div class="legend"><span><i style="background:var(--lower)"></i>Lowering</span><span><i style="background:var(--lift)"></i>Lifting</span></div>
+    <p class="section-title">Tempo, rep by rep</p>
+    <ol class="reps" id="repList"></ol>
+    <details>
+      <summary>How it counted</summary>
+      <div class="methods" id="methods"></div>
+      <canvas id="spec" aria-label="Spectrum of the set"></canvas>
+    </details>
+    <div class="actions">
+      <button class="primary" id="againBtn" type="button">New set</button>
+      <button class="secondary" id="saveBtn" type="button">Save recording (CSV)</button>
+      <p class="status" id="saveStatus" role="status"></p>
+    </div>
+  </section>
+
+  <!-- History -->
+  <section id="history" hidden>
+    <h2 style="font-size:2.4rem;margin-top:0.4rem">Past sets</h2>
+    <ul class="history" id="historyList"></ul>
+    <p class="empty" id="historyEmpty">No sets yet. Your finished sets show up here.</p>
+    <div class="actions"><button class="secondary" id="backBtn" type="button">Back</button></div>
+  </section>
+</main>
+<script>
+// Rep counter DSP: JavaScript port of repcounter.py, plus the real-time engine.
+// EE 102A final project, Tony Cui and Arun Tamura.
+// Works in the browser (window.RC) and in Node (module.exports) for testing.
+(function (root) {
+  "use strict";
+
+  const REP_BAND = [0.2, 3.0]; // Hz
+
+  // ---------------------------------------------------------------- FFT
+  function nextPow2(n) { return 1 << Math.ceil(Math.log2(Math.max(2, n))); }
+
+  // In-place iterative radix-2 FFT. inverse=true computes the IDFT (with 1/N).
+  function fft(re, im, inverse) {
+    const n = re.length;
+    for (let i = 1, j = 0; i < n; i++) {
+      let bit = n >> 1;
+      for (; j & bit; bit >>= 1) j ^= bit;
+      j ^= bit;
+      if (i < j) {
+        let t = re[i]; re[i] = re[j]; re[j] = t;
+        t = im[i]; im[i] = im[j]; im[j] = t;
+      }
+    }
+    for (let len = 2; len <= n; len <<= 1) {
+      const ang = (2 * Math.PI / len) * (inverse ? 1 : -1);
+      const half = len >> 1;
+      for (let k = 0; k < half; k++) {
+        const cr = Math.cos(ang * k), ci = Math.sin(ang * k);
+        for (let i = k; i < n; i += len) {
+          const b = i + half;
+          const xr = re[b] * cr - im[b] * ci, xi = re[b] * ci + im[b] * cr;
+          re[b] = re[i] - xr; im[b] = im[i] - xi;
+          re[i] += xr; im[i] += xi;
+        }
+      }
+    }
+    if (inverse) for (let i = 0; i < n; i++) { re[i] /= n; im[i] /= n; }
+  }
+
+  // Frequency of FFT bin k (same convention as numpy.fft.fftfreq).
+  function binFreq(k, nfft, fs) { return (k <= nfft / 2 - (nfft % 2 ? 0 : 1) ? k : k - nfft) * fs / nfft; }
+
+  // Multiply the spectrum of x by H(f) = gain(f) -> [re, im], return the real part.
+  // Zero-pads to >= 2N (and to >= minDur seconds) to limit circular wrap-around.
+  function spectralApply(x, fs, gain, minDur) {
+    const n = x.length;
+    const nfft = nextPow2(Math.max(2 * n, Math.ceil((minDur || 0) * fs)));
+    const re = new Float64Array(nfft), im = new Float64Array(nfft);
+    re.set(x);
+    fft(re, im, false);
+    for (let k = 0; k < nfft; k++) {
+      const g = gain(binFreq(k, nfft, fs));
+      const r = re[k], i = im[k];
+      re[k] = r * g[0] - i * g[1];
+      im[k] = r * g[1] + i * g[0];
+    }
+    fft(re, im, true);
+    return re.slice(0, n);
+  }
+
+  // Band mask: 1 inside [lo, hi], 0 outside, depends only on |f| (so H(-f) = H(f)).
+  // taper > 0 rolls each edge off with a raised cosine to cut ringing (Gibbs).
+  function bandMask(f, lo, hi, taper) {
+    const af = Math.abs(f);
+    let H = 1;
+    if (lo != null) {
+      if (taper) {
+        const r = Math.min(1, Math.max(0, (af - lo * (1 - taper)) / (2 * taper * lo)));
+        H *= 0.5 - 0.5 * Math.cos(Math.PI * r);
+      } else if (af < lo) H = 0;
+    }
+    if (hi != null) {
+      if (taper) {
+        const r = Math.min(1, Math.max(0, (hi * (1 + taper) - af) / (2 * taper * hi)));
+        H *= 0.5 - 0.5 * Math.cos(Math.PI * r);
+      } else if (af > hi) H = 0;
+    }
+    return H;
+  }
+
+  // Brick-wall (or tapered) filter in the frequency domain.
+  function fftFilter(x, fs, lo, hi, taper, minDur) {
+    return spectralApply(x, fs, f => [bandMask(f, lo, hi, taper), 0], minDur);
+  }
+
+  // Integration as an LTI system: H(f) = (1 / (j 2 pi f))^order inside the band, 0 outside.
+  function integrate(x, fs, lo, hi, order, taper, minDur) {
+    return spectralApply(x, fs, f => {
+      const m = bandMask(f, lo, hi, taper);
+      if (m === 0 || f === 0) return [0, 0];
+      const w = 2 * Math.PI * f;
+      return order === 1 ? [0, -m / w] : [-m / (w * w), 0];
+    }, minDur);
+  }
+
+  // One-sided |X(f)| / N.
+  function spectrum(x, fs, nfft) {
+    const n = x.length;
+    nfft = nfft || n;
+    const size = nextPow2(nfft) === nfft ? nfft : null;
+    let re, im;
+    if (size) {
+      re = new Float64Array(nfft); im = new Float64Array(nfft); re.set(x.slice(0, nfft));
+      fft(re, im, false);
+    } else { // plain DFT for non-power-of-2 lengths (only used for small diagnostic spectra)
+      re = new Float64Array(nfft); im = new Float64Array(nfft);
+      const half = Math.floor(nfft / 2) + 1;
+      for (let k = 0; k < half; k++) {
+        let sr = 0, si = 0;
+        for (let t = 0; t < n; t++) {
+          const a = -2 * Math.PI * k * t / nfft;
+          sr += x[t] * Math.cos(a); si += x[t] * Math.sin(a);
+        }
+        re[k] = sr; im[k] = si;
+      }
+    }
+    const half = Math.floor(nfft / 2) + 1;
+    const f = new Float64Array(half), A = new Float64Array(half);
+    for (let k = 0; k < half; k++) { f[k] = k * fs / nfft; A[k] = Math.hypot(re[k], im[k]) / n; }
+    return { f, A };
+  }
+
+  // ------------------------------------------------------------ helpers
+  function mean(a) { let s = 0; for (const v of a) s += v; return s / a.length; }
+  function percentile(a, q) { // numpy default (linear)
+    const s = Float64Array.from(a).sort();
+    const pos = (q / 100) * (s.length - 1), lo = Math.floor(pos), hi = Math.ceil(pos);
+    return s[lo] + (s[hi] - s[lo]) * (pos - lo);
+  }
+  function median(a) { return percentile(a, 50); }
+
+  function movingAverage(x, fs, widthS) { // np.convolve(x, ones(L)/L, mode="same")
+    const L = Math.max(1, Math.round(widthS * fs)), n = x.length, off = Math.floor((L - 1) / 2);
+    const cs = new Float64Array(n + 1);
+    for (let i = 0; i < n; i++) cs[i + 1] = cs[i] + x[i];
+    const y = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      const hi = Math.min(n - 1, i + off), lo = Math.max(0, i + off - L + 1);
+      y[i] = (cs[hi + 1] - cs[lo]) / L;
+    }
+    return y;
+  }
+
+  // scipy.signal.find_peaks(z, distance, prominence), same rules and order.
+  function findPeaks(z, distance, prominence) {
+    const n = z.length;
+    let peaks = [];
+    let i = 1;
+    while (i < n - 1) {
+      if (z[i - 1] < z[i]) {
+        let ahead = i + 1;
+        while (ahead < n - 1 && z[ahead] === z[i]) ahead++;
+        if (z[ahead] < z[i]) { peaks.push(i + Math.floor((ahead - 1 - i) / 2)); i = ahead; continue; }
+      }
+      i++;
+    }
+    if (distance > 1 && peaks.length > 1) {
+      const d = Math.ceil(distance), keep = new Array(peaks.length).fill(true);
+      const order = peaks.map((p, k) => k).sort((a, b) => z[peaks[a]] - z[peaks[b]]);
+      for (let o = order.length - 1; o >= 0; o--) {
+        const j = order[o];
+        if (!keep[j]) continue;
+        for (let k = j - 1; k >= 0 && peaks[j] - peaks[k] < d; k--) keep[k] = false;
+        for (let k = j + 1; k < peaks.length && peaks[k] - peaks[j] < d; k++) keep[k] = false;
+      }
+      peaks = peaks.filter((p, k) => keep[k]);
+    }
+    const out = [];
+    for (const p of peaks) {
+      let lmin = z[p], k = p;
+      while (k >= 0 && z[k] <= z[p]) { if (z[k] < lmin) lmin = z[k]; k--; }
+      let rmin = z[p]; k = p;
+      while (k < n && z[k] <= z[p]) { if (z[k] < rmin) rmin = z[k]; k++; }
+      const prom = z[p] - Math.max(lmin, rmin);
+      if (prom >= prominence) out.push(p);
+    }
+    return out;
+  }
+
+  // Count peaks of polarity*y: >= minSpacing apart, prominence >= promFrac of the range.
+  function countPeaks(y, fs, polarity, opts) {
+    opts = opts || {};
+    const minSpacing = opts.minSpacing ?? 0.5, promFrac = opts.promFrac ?? 0.3, floor = opts.promFloor ?? 0;
+    const z = Float64Array.from(y, v => polarity * v);
+    const spread = percentile(z, 95) - percentile(z, 5);
+    return findPeaks(z, Math.max(1, Math.trunc(minSpacing * fs)), Math.max(promFrac * spread, floor));
+  }
+
+  // Rep rate from the biggest spectral peak in the band, with the f/2, f/3 harmonic check.
+  function repRate(x, fs, band, subFrac, padFactor) {
+    band = band || REP_BAND; subFrac = subFrac ?? 0.3; padFactor = padFactor || 8;
+    const n = x.length;
+    const { f, A } = spectrum(x, fs, n);
+    const df = fs / n;
+    let k = -1;
+    for (let i = 0; i < f.length; i++) if (f[i] >= band[0] && f[i] <= band[1] && (k < 0 || A[i] > A[k])) k = i;
+    let fPeak = f[k], divisor = 1;
+    for (const m of [2, 3]) {
+      const fm = fPeak / m;
+      if (fm < band[0]) continue;
+      const w = Math.max(1.5 * df, 0.05 * fm);
+      let j = -1, ringMax = -Infinity, haveRing = false;
+      for (let i = 0; i < f.length; i++) {
+        const d = Math.abs(f[i] - fm);
+        if (d <= w && (j < 0 || A[i] > A[j])) j = i;
+        if (d > 2 * w && d <= 0.3 * fm + 3 * df) { haveRing = true; ringMax = Math.max(ringMax, A[i]); }
+      }
+      if (j < 0) continue;
+      const isPeak = !haveRing || A[j] > 1.5 * ringMax;
+      if (A[j] >= subFrac * A[k] && isPeak) { divisor = m; k = j; fPeak = f[j]; break; }
+    }
+    const zp = spectrum(Float64Array.from({ length: padFactor * n }, (v, i) => i < n ? x[i] : 0), fs, nextPow2(padFactor * n));
+    let best = -1;
+    for (let i = 0; i < zp.f.length; i++) if (Math.abs(zp.f[i] - fPeak) <= df && (best < 0 || zp.A[i] > zp.A[best])) best = i;
+    return { fBin: fPeak, fInterp: best >= 0 ? zp.f[best] : fPeak, df, divisor, fSpec: f, ASpec: A };
+  }
+
+  function findActiveRegion(xBand, fs, opts) {
+    opts = opts || {};
+    const win = opts.win ?? 0.5, frac = opts.frac ?? 0.2, gap = opts.mergeGap ?? 4.0, pad = Math.trunc((opts.pad ?? 0.5) * fs);
+    const env = movingAverage(Float64Array.from(xBand, v => v * v), fs, win).map(v => Math.sqrt(Math.max(v, 0)));
+    const thr = frac * percentile(env, 99.5);
+    const segs = [];
+    let inSeg = false, s0 = 0;
+    for (let i = 0; i <= env.length; i++) {
+      const on = i < env.length && env[i] > thr;
+      if (on && !inSeg) { inSeg = true; s0 = i; }
+      if (!on && inSeg) {
+        inSeg = false;
+        if (segs.length && s0 - segs[segs.length - 1][1] < gap * fs) segs[segs.length - 1][1] = i;
+        else segs.push([s0, i]);
+      }
+    }
+    if (!segs.length) return { i0: 0, i1: env.length, a0: 0, a1: env.length };
+    let best = segs[0], bestE = -1;
+    for (const [a, b] of segs) { let e = 0; for (let i = a; i < b; i++) e += env[i] * env[i]; if (e > bestE) { bestE = e; best = [a, b]; } }
+    return { i0: Math.max(0, best[0] - pad), i1: Math.min(env.length, best[1] + pad), a0: best[0], a1: best[1] };
+  }
+
+  // Phases from a rate signal: runs above +thr / below -thr, pushed out until the rate
+  // crosses zero or drops under stopFrac of the peak (so pauses belong to neither phase).
+  function detectPhases(rate, fs, thrFrac, stopFrac, minDur) {
+    thrFrac = thrFrac ?? 0.15; stopFrac = stopFrac ?? 0.03; minDur = minDur ?? 0.25;
+    const peak = percentile(Float64Array.from(rate, Math.abs), 95);
+    const thr = thrFrac * peak, stop = stopFrac * peak;
+    const runs = [];
+    let cur = null;
+    for (let i = 0; i < rate.length; i++) {
+      const lab = rate[i] > thr ? 1 : rate[i] < -thr ? -1 : 0;
+      if (!lab) continue;
+      if (cur && cur[0] === lab) cur[2] = i;
+      else { if (cur) runs.push(cur); cur = [lab, i, i]; }
+    }
+    if (cur) runs.push(cur);
+    const out = [];
+    for (let [sign, a, b] of runs) {
+      while (a > 0 && sign * rate[a - 1] > stop) a--;
+      while (b < rate.length - 1 && sign * rate[b + 1] > stop) b++;
+      if ((b - a) / fs < minDur) continue;
+      if (out.length && out[out.length - 1][0] === sign) out[out.length - 1][2] = b;
+      else out.push([sign, a, b]);
+    }
+    return out;
+  }
+
+  // Starting at the top a rep is down then up; at the bottom, up then down.
+  // Lowering is eccentric and lifting is concentric for squats, push-ups and curls.
+  function assembleReps(dirs, start) {
+    const first = start === "top" ? "down" : "up", second = first === "down" ? "up" : "down";
+    const reps = [];
+    for (let i = 0; i < dirs.length - 1;) {
+      if (dirs[i][0] === first && dirs[i + 1][0] === second) {
+        const h = {}; h[dirs[i][0]] = dirs[i]; h[dirs[i + 1][0]] = dirs[i + 1];
+        reps.push({ ecc: [h.down[1], h.down[2]], con: [h.up[1], h.up[2]] });
+        i += 2;
+      } else i++;
+    }
+    return reps;
+  }
+
+  // ------------------------------------------------- resampling the stream
+  // Phone timestamps are uneven; put the samples on a uniform grid by linear interpolation.
+  function resample(ts, xs, ys, zs, fs, tStart, tEnd) {
+    const n = Math.max(0, Math.floor((tEnd - tStart) * fs) + 1);
+    const t = new Float64Array(n), ax = new Float64Array(n), ay = new Float64Array(n), az = new Float64Array(n);
+    let j = 0;
+    while (j < ts.length - 2 && ts[j + 1] < tStart) j++;
+    for (let i = 0; i < n; i++) {
+      const tt = tStart + i / fs;
+      while (j < ts.length - 2 && ts[j + 1] < tt) j++;
+      const dt = ts[j + 1] - ts[j] || 1e-9, u = Math.min(1, Math.max(0, (tt - ts[j]) / dt));
+      t[i] = tt;
+      ax[i] = xs[j] + u * (xs[j + 1] - xs[j]);
+      ay[i] = ys[j] + u * (ys[j + 1] - ys[j]);
+      az[i] = zs[j] + u * (zs[j + 1] - zs[j]);
+    }
+    return { t, ax, ay, az };
+  }
+
+  function magnitudeMinusMean(ax, ay, az) {
+    const m = Float64Array.from(ax, (v, i) => Math.hypot(v, ay[i], az[i]));
+    const mu = mean(m);
+    return m.map(v => v - mu);
+  }
+
+  // Angle (deg) between the phone's smoothed "down" direction and its direction at the
+  // start position. When the phone moves slowly the accelerometer mostly measures
+  // gravity, so this tracks how far the forearm has rotated. Used to count curls.
+  function tiltAngle(ax, ay, az, fs, ref, minDur) {
+    const sm = [ax, ay, az].map(a => { const mu = mean(a); return fftFilter(a.map(v => v - mu), fs, null, 3.0, 0.5, minDur).map(v => v + mu); });
+    const out = new Float64Array(ax.length);
+    for (let i = 0; i < ax.length; i++) {
+      const n = Math.hypot(sm[0][i], sm[1][i], sm[2][i]) || 1;
+      const c = (sm[0][i] * ref[0] + sm[1][i] * ref[1] + sm[2][i] * ref[2]) / n;
+      out[i] = Math.acos(Math.max(-1, Math.min(1, c))) * 180 / Math.PI;
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------- offline analysis
+  // Same steps as repcounter.analyze (no tap search: the app knows when the set started).
+  function analyzeSet(t, ax, ay, az, fs, start, opts) {
+    opts = opts || {};
+    const band = [REP_BAND[0], Math.min(REP_BAND[1], 0.45 * fs)];
+    const magFull = Float64Array.from(ax, (v, i) => Math.hypot(v, ay[i], az[i]));
+    const muFull = mean(magFull);
+    const reg = opts.trim ? { i0: 0, i1: t.length, a0: 0, a1: t.length }
+      : findActiveRegion(fftFilter(magFull.map(v => v - muFull), fs, band[0], band[1]), fs);
+    const sl = (a) => a.slice(reg.i0, reg.i1);
+    const ts = sl(t), x = magnitudeMinusMean(sl(ax), sl(ay), sl(az));
+    const T = (reg.a1 - reg.a0) / fs;
+    const rr = repRate(x, fs, band);
+    const d = integrate(x, fs, band[0], band[1], 2, 0);
+    const pol = start === "top" ? -1 : 1;
+    const dips = countPeaks(d, fs, pol, { promFloor: opts.promFloor || 0 });
+    const v = integrate(x, fs, band[0], band[1], 1, 0.5);
+    const dirs = detectPhases(v, fs).map(([s, a, b]) => [s > 0 ? "up" : "down", a, b]);
+    const reps = assembleReps(dirs, start).map((r, k) => ({
+      rep: k + 1,
+      eccStart: ts[r.ecc[0]], eccEnd: ts[r.ecc[1]], ecc: (r.ecc[1] - r.ecc[0]) / fs,
+      conStart: ts[r.con[0]], conEnd: ts[r.con[1]], con: (r.con[1] - r.con[0]) / fs,
+    }));
+    return {
+      fs, start, ts, x, d, v, T, rate: rr, repsFreq: rr.fInterp * T, dips, dipTimes: dips.map(i => ts[i]),
+      reps, dirs, band, active: [t[reg.a0], t[Math.min(reg.a1, t.length - 1)]],
+    };
+  }
+
+  // ------------------------------------------------------ real-time engine
+  // Every update re-runs the FFT pipeline on the last WINDOW seconds. A dip in
+  // displacement becomes a counted rep once it is CONFIRM seconds old, has shown
+  // up in two updates in a row, and isn't a rep we already counted.
+  class LiveCounter {
+    constructor(opts) {
+      opts = opts || {};
+      this.start = opts.start || "top";
+      this.window = opts.window || 30;
+      this.confirm = opts.confirm ?? 0.35;
+      this.climb = opts.climb ?? 0.12;
+      this.promFloor = opts.promFloor ?? 0.03;     // m: ignore dips shallower than 3 cm
+      this.band = opts.band || REP_BAND;
+      this.signal = opts.signal || "displacement";  // "displacement" or "angle" (curls)
+      this.ref = null;
+      this.ts = []; this.xs = []; this.ys = []; this.zs = [];
+      this.fs = null;
+      this.committed = [];                          // rep times (s)
+      this.prev = [];
+      this.lastTempo = null;
+      this.moving = null;                           // "up" | "down" | null
+    }
+    push(t, x, y, z) {
+      if (this.ts.length && t <= this.ts[this.ts.length - 1]) return;
+      this.ts.push(t); this.xs.push(x); this.ys.push(y); this.zs.push(z);
+    }
+    sampleRate() {
+      if (this.fs) return this.fs;
+      if (this.ts.length < 40) return null;
+      const dts = [];
+      for (let i = 1; i < this.ts.length; i++) dts.push(this.ts[i] - this.ts[i - 1]);
+      const fs = 1 / median(dts);
+      if (this.ts[this.ts.length - 1] - this.ts[0] > 2) this.fs = fs; // freeze after 2 s
+      return fs;
+    }
+    update() {
+      const out = { count: this.committed.length, newReps: 0, lastTempo: this.lastTempo, moving: this.moving, trace: null };
+      const fs = this.sampleRate();
+      if (!fs) return out;
+      const tEnd = this.ts[this.ts.length - 1], tStart = Math.max(this.ts[0], tEnd - this.window);
+      if (tEnd - tStart < 1) return out;
+      const band = [this.band[0], Math.min(this.band[1], 0.45 * fs)];
+      const g = resample(this.ts, this.xs, this.ys, this.zs, fs, tStart, tEnd);
+      const x = magnitudeMinusMean(g.ax, g.ay, g.az);
+      const v = integrate(x, fs, band[0], band[1], 1, 0.5, 32);
+      let d, z, rate, pol, floor;
+      if (this.signal === "angle") {
+        if (!this.ref) {                              // start position: first 0.3 s of the set
+          let r = [0, 0, 0], k = 0;
+          for (let i = 0; i < this.ts.length && this.ts[i] < this.ts[0] + 0.3; i++) { r[0] += this.xs[i]; r[1] += this.ys[i]; r[2] += this.zs[i]; k++; }
+          const n = Math.hypot(...r) || 1; this.ref = r.map(c => c / n);
+        }
+        d = tiltAngle(g.ax, g.ay, g.az, fs, this.ref, 32);
+        pol = 1;                                      // the angle peaks at the far end of every rep
+        z = d;
+        rate = Float64Array.from(d, (val, i) => (d[Math.min(d.length - 1, i + 1)] - d[Math.max(0, i - 1)]) * fs / 2);
+        floor = 15;                                   // degrees
+      } else {
+        d = integrate(x, fs, band[0], band[1], 2, 0, 32);
+        pol = this.start === "top" ? -1 : 1;          // starting at the top, each rep is a dip
+        z = Float64Array.from(d, val => pol * val);
+        rate = Float64Array.from(v, val => pol * val); // z rising means pol*v > 0
+        floor = this.promFloor;                       // metres
+      }
+      const spread = percentile(z, 95) - percentile(z, 5);
+      // Every local extreme at least 0.5 s from a bigger one is a candidate. A
+      // candidate counts once the way into it is a full rep deep (30% of the
+      // range, and above a floor) and the way back out has started (12%):
+      // waiting for the whole way back is what made counting lag.
+      const pk = findPeaks(z, Math.max(1, Math.trunc(0.5 * fs)), 0);
+      const ratePeak = percentile(Float64Array.from(rate, Math.abs), 95);
+      const seen = [];
+      for (const p of pk) {
+        let lmin = z[p], iL = p, k = p;
+        while (k >= 0 && z[k] <= z[p]) { if (z[k] < lmin) { lmin = z[k]; iL = k; } k--; }
+        let rmin = z[p]; k = p;
+        while (k < z.length && z[k] <= z[p]) { if (z[k] < rmin) rmin = z[k]; k++; }
+        if (z[p] - lmin < Math.max(0.3 * spread, floor)) continue;
+        if (z[p] - rmin < Math.max(this.climb * spread, 0.6 * floor)) continue;
+        // The way into a real rep is a real movement in that direction; slow drift
+        // after the set (from the 0.2 Hz high-pass) moves the same way but barely.
+        let rMax = 0;
+        for (let i = iL; i <= p; i++) rMax = Math.max(rMax, rate[i]);
+        if (rMax < 0.35 * ratePeak) continue;
+        const tp = g.t[p];
+        seen.push(tp);
+        if (tStart > this.ts[0] && tp < tStart + 1) continue;         // left edge of a sliding window
+        if (tEnd - tp < this.confirm) continue;                       // not settled yet
+        // Same rep as one already counted? Two reps always have a full valley
+        // between them; a peak that has merely moved as data came in does not.
+        let same = -1;
+        for (let ci = 0; ci < this.committed.length; ci++) {
+          const c = this.committed[ci];
+          if (Math.abs(c - tp) > 4) continue;
+          if (Math.abs(c - tp) < 0.45) { same = ci; break; }
+          const ic = Math.round((c - g.t[0]) * fs);
+          if (ic < 0 || ic >= z.length) continue;
+          let mn = Infinity;
+          for (let i = Math.min(ic, p); i <= Math.max(ic, p); i++) mn = Math.min(mn, z[i]);
+          if (Math.min(z[p], z[ic]) - mn < 0.3 * spread) { same = ci; break; }
+        }
+        if (same >= 0) { this.committed[same] = tp; continue; }       // keep the newer estimate
+        if (!this.prev.some(q => Math.abs(q - tp) < 0.2)) continue;   // must persist across updates
+        this.committed.push(tp);
+        this.committed.sort((a, b) => a - b);
+        out.newReps++;
+      }
+      this.prev = seen;
+
+      // Tempo of the latest finished rep, and which way the body is moving (0.4 s ago).
+      const dirs = detectPhases(v, fs).map(([s, a, b]) => [s > 0 ? "up" : "down", a, b]);
+      const reps = assembleReps(dirs, this.start);
+      for (let k = reps.length - 1; k >= 0; k--) {
+        const r = reps[k], end = g.t[Math.max(r.ecc[1], r.con[1])];
+        if (tEnd - end >= 0.4) { this.lastTempo = { down: (r.ecc[1] - r.ecc[0]) / fs, up: (r.con[1] - r.con[0]) / fs, end }; break; }
+      }
+      const iLag = Math.max(0, g.t.length - 1 - Math.round(0.4 * fs));
+      const cur = dirs.find(([, a, b]) => a <= iLag && iLag <= b);
+      this.moving = cur ? cur[0] : null;
+
+      // Quietness for auto-stop: RMS of the band-passed signal, last 2 s vs. the whole window.
+      const y = fftFilter(x, fs, band[0], band[1], 0, 32);
+      const nRecent = Math.min(y.length, Math.round(2 * fs));
+      let eR = 0, eA = 0;
+      for (let i = 0; i < y.length; i++) { eA += y[i] * y[i]; if (i >= y.length - nRecent) eR += y[i] * y[i]; }
+      this.recentRms = Math.sqrt(eR / nRecent);
+      this.windowRms = Math.sqrt(eA / y.length);
+
+      const n0 = Math.max(0, d.length - Math.round(12 * fs));
+      out.trace = { t: g.t.slice(n0), d: d.slice(n0), tEnd, kind: this.signal };
+      out.count = this.committed.length;
+      out.lastTempo = this.lastTempo;
+      out.moving = this.moving;
+      return out;
+    }
+    // True when the set looks finished: no new rep for a while and the signal has gone quiet.
+    looksDone() {
+      const c = this.committed;
+      if (!c.length || !this.fs) return false;
+      const tEnd = this.ts[this.ts.length - 1];
+      const gaps = c.slice(1).map((v, i) => v - c[i]);
+      const typical = gaps.length ? median(gaps) : 3;
+      return tEnd - c[c.length - 1] > Math.min(8, Math.max(4, 2 * typical)) && this.recentRms < 0.25 * this.windowRms;
+    }
+  }
+
+  const RC = {
+    REP_BAND, fft, nextPow2, bandMask, fftFilter, integrate, spectrum, percentile, median, mean,
+    movingAverage, findPeaks, countPeaks, tiltAngle, repRate, findActiveRegion, detectPhases, assembleReps,
+    resample, magnitudeMinusMean, analyzeSet, LiveCounter,
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = RC;
+  else root.RC = RC;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+// Simulated accelerometer for "Try it without a phone" (port of make_synthetic.py).
+// Moves a phone along a realistic path for each exercise, rotates it with the limb,
+// and returns what an accelerometer would read: gravity plus motion, in the phone's
+// frame, plus noise, sampled unevenly at about fs Hz.
+(function (root) {
+  "use strict";
+  const G = 9.81, FINE = 500;
+
+  function rng(seed) { // mulberry32
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function gauss(r) { return Math.sqrt(-2 * Math.log(r() + 1e-12)) * Math.cos(2 * Math.PI * r()); }
+  const minJerk = u => 10 * u ** 3 - 15 * u ** 4 + 6 * u ** 5;
+
+  // h = 1 at the top of the rep, 0 at the bottom -> phone position (x, z) and limb angle.
+  function geometry(ex, h) {
+    if (ex === "squat") { const a = (80 * Math.PI / 180) * (1 - h); return [-0.225 * Math.sin(a), 0.5 + 0.225 * Math.cos(a), a]; }
+    if (ex === "pushup") { const a = (70 * Math.PI / 180) * (1 - h); return [-0.15 * Math.sin(a), 0.15 + 0.30 * h - 0.15 * Math.cos(a), a]; }
+    const a = (140 * Math.PI / 180) * h; return [0.22 * Math.sin(a), 1.0 - 0.22 * Math.cos(a), a];
+  }
+
+  function randomRotation(r) {
+    let q = [gauss(r), gauss(r), gauss(r), gauss(r)]; const n = Math.hypot(...q); q = q.map(v => v / n);
+    const [w, x, y, z] = q;
+    return [[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+            [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+            [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]];
+  }
+
+  const TEMPO = { // seconds: lowering, lifting, pause at top, pause at bottom
+    squat: [1.2, 1.0, 0.3, 0.1], pushup: [1.0, 0.8, 0.2, 0.1], curl: [1.5, 1.0, 0.2, 0.4],
+  };
+
+  function simulateSet(o) {
+    const ex = o.exercise, start = o.start || (ex === "curl" ? "bottom" : "top");
+    const [tE, tC, pT, pB] = o.tempo || TEMPO[ex];
+    const reps = o.reps ?? 10, fs = o.fs ?? 60, jitter = o.jitter ?? 0.15, noise = o.noise ?? 0.08;
+    const lead = o.lead ?? 1.2, tail = o.tail ?? 8, r = rng(o.seed ?? 7);
+    const j = d => d * (1 + jitter * (2 * r() - 1));
+    const segs = [], truth = [];
+    let t = lead;
+    for (let k = 0; k < reps; k++) {
+      const e = j(tE), c = j(tC), pt = j(pT), pb = j(pB);
+      const order = start === "top"
+        ? [["ecc", e, 1, 0], ["p", pb, 0, 0], ["con", c, 0, 1], ["p", pt, 1, 1]]
+        : [["con", c, 0, 1], ["p", pt, 1, 1], ["ecc", e, 1, 0], ["p", pb, 0, 0]];
+      const row = { rep: k + 1 };
+      for (const [kind, d, h0, h1] of order) {
+        segs.push([t, d, h0, h1]);
+        if (kind !== "p") { row[kind + "Start"] = t; row[kind + "End"] = t + d; }
+        t += d;
+      }
+      truth.push(row);
+    }
+    const tEnd = t + tail, N = Math.ceil(tEnd * FINE) + 1, h0 = start === "top" ? 1 : 0;
+    const X = new Float64Array(N), Z = new Float64Array(N), A = new Float64Array(N);
+    let s = 0;
+    for (let i = 0; i < N; i++) {
+      const tt = i / FINE;
+      while (s < segs.length && tt >= segs[s][0] + segs[s][1]) s++;
+      let h = h0;
+      if (s < segs.length && tt >= segs[s][0]) { const [a, d, f0, f1] = segs[s]; h = f0 + (f1 - f0) * minJerk((tt - a) / d); }
+      [X[i], Z[i], A[i]] = geometry(ex, h);
+    }
+    const d2 = (v, i) => (v[Math.min(N - 1, i + 1)] - 2 * v[i] + v[Math.max(0, i - 1)]) * FINE * FINE;
+    const R0 = randomRotation(r), bias = [gauss(r) * 0.05, gauss(r) * 0.05, gauss(r) * 0.05];
+    const out = { t: [], ax: [], ay: [], az: [], truth, fs, exercise: ex, start };
+    for (let tt = 0; tt < tEnd - 0.05; tt += 1 / fs) {
+      const ts = Math.max(0, tt + gauss(r) * 0.0008);
+      const i = Math.min(N - 2, Math.floor(ts * FINE));
+      const fw = [d2(X, i), 0, d2(Z, i) + G];              // specific force, world frame
+      const c = Math.cos(A[i]), sn = Math.sin(A[i]);
+      const Ry = [[c, 0, sn], [0, 1, 0], [-sn, 0, c]];      // limb rotation about the side axis
+      const R = Ry.map(row => [0, 1, 2].map(col => row[0] * R0[0][col] + row[1] * R0[1][col] + row[2] * R0[2][col]));
+      const fp = [0, 1, 2].map(col => R[0][col] * fw[0] + R[1][col] * fw[1] + R[2][col] * fw[2]); // R^T f
+      out.t.push(ts);
+      out.ax.push(fp[0] + bias[0] + noise * gauss(r));
+      out.ay.push(fp[1] + bias[1] + noise * gauss(r));
+      out.az.push(fp[2] + bias[2] + noise * gauss(r));
+    }
+    return out;
+  }
+
+  const SIM = { simulateSet, TEMPO };
+  if (typeof module !== "undefined" && module.exports) module.exports = SIM;
+  else root.SIM = SIM;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+// Rep counter web app: sensors, live loop, results. The math lives in dsp.js (RC).
+(function () {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+
+  const EXERCISES = {
+    squat:  { name: "Squats",      start: "top",    where: "Phone in your front pocket" },
+    pushup: { name: "Push-ups",    start: "top",    where: "Armband on your upper arm" },
+    curl:   { name: "Bicep curls", start: "bottom", where: "Armband on your forearm, near the wrist" },
+  };
+  const START_HINT = {
+    top: "Standing tall for squats, arms straight for push-ups.",
+    bottom: "Arms hanging straight for curls.",
+  };
+  const params = new URLSearchParams(location.search);
+  const SPEED = Math.min(20, Math.max(1, +params.get("speed") || 1)); // test hook for simulation playback
+  const TICK = 0.2;          // s between updates
+  const MAX_SET = 600;       // s
+
+  // ---------------------------------------------------------- settings
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("repcounter." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem("repcounter." + k, JSON.stringify(v)); } catch (e) { /* storage off */ } },
+  };
+  const settings = Object.assign({ exercise: "squat", start: "top", speak: true, autostop: true }, store.get("settings", {}));
+
+  function show(id) {
+    for (const s of ["setup", "countdown", "live", "results", "history"]) $("#" + s).hidden = s !== id;
+    window.scrollTo(0, 0);
+  }
+
+  // ---------------------------------------------------------- setup UI
+  const exBox = $("#exercise");
+  for (const [key, ex] of Object.entries(EXERCISES)) {
+    const lab = document.createElement("label");
+    lab.className = "choice";
+    lab.innerHTML = `<input type="radio" name="exercise" value="${key}"><span class="body"><span class="name">${ex.name}</span><span class="where">${ex.where}</span><span class="plate" aria-hidden="true"></span></span>`;
+    exBox.appendChild(lab);
+  }
+  function syncSetup() {
+    document.querySelector(`input[name=exercise][value=${settings.exercise}]`).checked = true;
+    document.querySelector(`input[name=start][value=${settings.start}]`).checked = true;
+    $("#startHint").textContent = START_HINT[settings.start];
+    $("#speak").checked = settings.speak;
+    $("#autostop").checked = settings.autostop;
+  }
+  exBox.addEventListener("change", (e) => {
+    settings.exercise = e.target.value;
+    settings.start = EXERCISES[settings.exercise].start;
+    syncSetup(); store.set("settings", settings);
+  });
+  document.querySelectorAll("input[name=start]").forEach((r) => r.addEventListener("change", (e) => {
+    settings.start = e.target.value; syncSetup(); store.set("settings", settings);
+  }));
+  $("#speak").addEventListener("change", (e) => { settings.speak = e.target.checked; store.set("settings", settings); });
+  $("#autostop").addEventListener("change", (e) => { settings.autostop = e.target.checked; store.set("settings", settings); });
+  syncSetup();
+
+  function setupError(title, body) {
+    const el = $("#setupError");
+    el.innerHTML = "";
+    const s = document.createElement("strong"); s.textContent = title;
+    const p = document.createElement("p"); p.textContent = body;
+    el.append(s, p); el.hidden = false;
+  }
+
+  // ---------------------------------------------------------- sound
+  let audio = null;
+  function unlockAudio() {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === "suspended") audio.resume();
+    } catch (e) { audio = null; }
+    try { if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } } catch (e) { /* no speech */ }
+  }
+  function beep(freq, dur) {
+    if (!audio) return;
+    const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime;
+    o.frequency.value = freq; o.type = "square";
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(audio.destination); o.start(t); o.stop(t + dur + 0.02);
+  }
+  function say(text) {
+    if (!settings.speak) return;
+    try {
+      if (!("speechSynthesis" in window)) { beep(1046, 0.12); return; }
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text); u.rate = 1.15;
+      speechSynthesis.speak(u);
+    } catch (e) { beep(1046, 0.12); }
+  }
+
+  // ---------------------------------------------------------- screen wake lock
+  let wakeLock = null;
+  async function keepAwake() {
+    try { wakeLock = navigator.wakeLock ? await navigator.wakeLock.request("screen") : null; } catch (e) { wakeLock = null; }
+    return !!wakeLock;
+  }
+  function releaseAwake() { try { wakeLock && wakeLock.release(); } catch (e) { /* already gone */ } wakeLock = null; }
+
+  // ---------------------------------------------------------- session
+  let S = null; // the current set
+
+  function onMotion(e) {
+    const g = e.accelerationIncludingGravity;
+    if (!g || g.x == null) return;
+    if (!S) return;
+    S.sensorSeen = true;
+    if (!S.recording) return;
+    const t = (performance.now() - S.t0) / 1000;
+    S.engine.push(t, g.x, g.y, g.z);
+    S.raw.push([t, g.x, g.y, g.z]);
+  }
+
+  function newSession(mode) {
+    const ex = settings.exercise, start = settings.start;
+    S = {
+      mode, exercise: ex, start, recording: false, sensorSeen: false, raw: [], t0: 0, count: 0,
+      engine: new RC.LiveCounter({ start, signal: "angle" }),
+      ref: null, angleMax: 60, timer: null, simClock: 0, simIdx: 0, sim: null, hidden: 0,
+    };
+    if (mode === "sim") {
+      S.sim = SIM.simulateSet({ exercise: ex, start, reps: 8 + Math.floor(Math.random() * 5), seed: (Math.random() * 1e9) | 0, fs: 60 });
+    }
+  }
+
+  $("#startBtn").addEventListener("click", () => {
+    $("#setupError").hidden = true;
+    // iOS asks for motion permission here. It must be the first thing in the tap handler.
+    let perm = Promise.resolve("granted");
+    if (typeof DeviceMotionEvent !== "undefined" && typeof DeviceMotionEvent.requestPermission === "function") {
+      try { perm = DeviceMotionEvent.requestPermission(); } catch (e) { perm = Promise.reject(e); }
+    }
+    unlockAudio();
+    perm.then((res) => {
+      if (res !== "granted") {
+        setupError("Motion access is off", "Allow motion and orientation access for this page, then tap Start set again. On iPhone: Settings, Safari, Motion & Orientation Access.");
+        return;
+      }
+      if (typeof DeviceMotionEvent === "undefined") {
+        setupError("This browser has no motion sensor", "Open this page on your phone, or tap Try it without a phone.");
+        return;
+      }
+      newSession("live");
+      window.addEventListener("devicemotion", onMotion);
+      begin();
+    }).catch(() => setupError("Motion sensors are blocked here", "This view isn’t allowed to read the motion sensor. Open the app from its own link in Safari or Chrome, or tap Try it without a phone."));
+  });
+
+  $("#simBtn").addEventListener("click", () => {
+    $("#setupError").hidden = true;
+    unlockAudio();
+    newSession("sim");
+    begin();
+  });
+
+  async function begin() {
+    const awake = await keepAwake();
+    S.awakeOk = awake;
+    show("countdown");
+    $("#countPlace").textContent = EXERCISES[S.exercise].where + ". Get into the " + S.start + " position.";
+    let n = S.mode === "sim" && SPEED > 1 ? 1 : 5;
+    const stepMs = 1000;
+    $("#countNum").textContent = n;
+    beep(660, 0.12);
+    const iv = setInterval(() => {
+      n--;
+      if (S.mode === "live" && n === 2 && !S.sensorSeen) {
+        clearInterval(iv); stopSession();
+        show("setup");
+        setupError("No motion data", "The page isn’t getting readings from the motion sensor. On a laptop, tap Try it without a phone. On a phone, open the app from its own link in Safari or Chrome.");
+        return;
+      }
+      if (n > 0) { $("#countNum").textContent = n; beep(660, 0.12); return; }
+      clearInterval(iv);
+      beep(1320, 0.35);
+      startRecording();
+    }, stepMs);
+  }
+
+  function startRecording() {
+    show("live");
+    $("#repNum").textContent = "0";
+    $("#moveState").textContent = "Go";
+    $("#moveState").className = "state";
+    $("#lastTempo").textContent = "";
+    $("#liveBanner").textContent = S.awakeOk ? "" : "Keep the screen on: if it turns off, counting pauses. On iPhone, set Auto-Lock to Never for now.";
+    S.t0 = performance.now();
+    S.recording = true;
+    S.timer = setInterval(tick, TICK * 1000);
+  }
+
+  function feedSim(until) {
+    const s = S.sim;
+    while (S.simIdx < s.t.length && s.t[S.simIdx] <= until) {
+      const i = S.simIdx++;
+      S.engine.push(s.t[i], s.ax[i], s.ay[i], s.az[i]);
+      S.raw.push([s.t[i], s.ax[i], s.ay[i], s.az[i]]);
+    }
+  }
+
+  function tick() {
+    if (!S || !S.recording) return;
+    const now = (performance.now() - S.t0) / 1000;
+    let out = null;
+    if (S.mode === "sim") {
+      const target = now * SPEED;
+      while (S.simClock + TICK <= target) {       // run the engine at its normal pace in data time
+        S.simClock += TICK;
+        feedSim(S.simClock);
+        out = handle(S.engine.update());
+        if (!S.recording) return;
+        if (S.simIdx >= S.sim.t.length) { finish("auto"); return; }
+      }
+    } else {
+      out = handle(S.engine.update());
+    }
+    if (out) renderLive(out);
+    if (S && S.recording && now > MAX_SET) finish("manual");
+  }
+
+  function handle(out) {
+    if (out.newReps > 0) {
+      S.count = out.count;
+      const el = $("#repNum");
+      el.textContent = String(S.count);
+      el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump");
+      say(String(S.count));
+      if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) { /* no vibration */ } }
+    }
+    if (settings.autostop && S.engine.looksDone()) { finish("auto"); return null; }
+    return out;
+  }
+
+  // Where the limb is right now, from the latest raw sample: 0 = start position.
+  function currentAngle() {
+    const r = S.raw;
+    if (!r.length) return 0;
+    if (!S.ref) {
+      if (r[r.length - 1][0] < 0.3) return 0;
+      let a = [0, 0, 0], k = 0;
+      for (const s of r) { if (s[0] >= 0.3) break; a[0] += s[1]; a[1] += s[2]; a[2] += s[3]; k++; }
+      const n = Math.hypot(...a) || 1; S.ref = a.map((v) => v / n);
+    }
+    let a = [0, 0, 0], k = 0;                         // average the last ~0.12 s to calm the noise
+    for (let i = r.length - 1; i >= 0 && r[r.length - 1][0] - r[i][0] < 0.12; i--) { a[0] += r[i][1]; a[1] += r[i][2]; a[2] += r[i][3]; k++; }
+    const n = Math.hypot(...a) || 1;
+    const c = (a[0] * S.ref[0] + a[1] * S.ref[1] + a[2] * S.ref[2]) / n;
+    return Math.acos(Math.max(-1, Math.min(1, c))) * 180 / Math.PI;
+  }
+
+  function renderLive(out) {
+    const th = currentAngle();
+    S.angleMax = Math.max(S.angleMax * 0.999, th, 30);
+    const frac = Math.min(1, th / S.angleMax);       // 0 at the start position, 1 at the far end
+    const height = S.start === "top" ? 1 - frac : frac; // 1 = top of the rep
+    const puck = $("#puck");
+    puck.style.top = (100 * (1 - height)) + "%";
+    // Moving away from the start is lowering if you start at the top, lifting if at the bottom.
+    let dir = null;
+    if (S.lastTh != null) {
+      const dth = th - S.lastTh;
+      if (Math.abs(dth) > 1.2) dir = (dth > 0) === (S.start === "top") ? "lower" : "lift";
+    }
+    S.lastTh = th;
+    const st = $("#moveState");
+    if (dir) { st.textContent = dir === "lift" ? "Lifting" : "Lowering"; st.className = "state " + dir; puck.className = "puck " + dir; }
+    else if (S.engine.ts.length && S.count > 0) { st.textContent = "Hold"; st.className = "state"; puck.className = "puck"; }
+    if (out.lastTempo) $("#lastTempo").textContent = `Last rep: ${out.lastTempo.down.toFixed(1)} s down, ${out.lastTempo.up.toFixed(1)} s up`;
+    if (out.trace) drawTrace($("#trace"), out.trace, S.engine.committed);
+  }
+
+  // ---------------------------------------------------------- stopping
+  (function holdToStop() {
+    const b = $("#holdBtn");
+    let timer = null;
+    const startHold = (e) => { e.preventDefault(); b.classList.add("holding"); timer = setTimeout(() => { b.classList.remove("holding"); finish("manual"); }, 1200); };
+    const cancel = () => { b.classList.remove("holding"); clearTimeout(timer); timer = null; };
+    b.addEventListener("pointerdown", startHold);
+    b.addEventListener("pointerup", cancel);
+    b.addEventListener("pointerleave", cancel);
+    b.addEventListener("pointercancel", cancel);
+    b.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !timer && !e.repeat) startHold(e); });
+    b.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") cancel(); });
+  })();
+
+  document.addEventListener("visibilitychange", () => {
+    if (!S || !S.recording) return;
+    if (document.visibilityState === "hidden") S.hiddenAt = performance.now();
+    else {
+      keepAwake();
+      if (S.hiddenAt) {
+        const gap = (performance.now() - S.hiddenAt) / 1000;
+        S.hidden += gap;
+        $("#liveBanner").textContent = `The screen turned off for ${gap.toFixed(0)} s, so those seconds weren’t counted.`;
+      }
+    }
+  });
+
+  function stopSession() {
+    if (!S) return;
+    S.recording = false;
+    clearInterval(S.timer);
+    window.removeEventListener("devicemotion", onMotion);
+    releaseAwake();
+  }
+
+  function finish(reason) {
+    if (!S || !S.recording) return;
+    stopSession();
+    const n = S.engine.committed.length;
+    if (reason === "auto") say(n === 1 ? "Set done. 1 rep." : `Set done. ${n} reps.`);
+    renderResults();
+  }
+
+  // ---------------------------------------------------------- results
+  function analyzeRecording() {
+    const raw = S.raw, fs = S.engine.fs || S.engine.sampleRate() || 60;
+    if (raw.length < fs * 2) return null;
+    const ts = raw.map((r) => r[0]), xs = raw.map((r) => r[1]), ys = raw.map((r) => r[2]), zs = raw.map((r) => r[3]);
+    const g = RC.resample(ts, xs, ys, zs, fs, ts[0], ts[ts.length - 1]);
+    const A = RC.analyzeSet(g.t, g.ax, g.ay, g.az, fs, S.start);
+    const ref = S.engine.ref || (() => { const m = [RC.mean(xs.slice(0, 18)), RC.mean(ys.slice(0, 18)), RC.mean(zs.slice(0, 18))]; const n = Math.hypot(...m); return m.map((v) => v / n); })();
+    const theta = RC.tiltAngle(g.ax, g.ay, g.az, fs, ref);
+    const i0 = Math.max(0, Math.round((A.active[0] - g.t[0]) * fs)), i1 = Math.min(theta.length, Math.round((A.active[1] - g.t[0]) * fs));
+    const seg = theta.slice(i0, i1);
+    const mu = RC.mean(seg);
+    const rr = seg.length > fs * 2 ? RC.repRate(seg.map((v) => v - mu), fs, A.band) : null;
+    const anglePeaks = RC.countPeaks(theta, fs, 1, { promFloor: 15 });
+    return { fs, t: g.t, theta, A, rr, T: (i1 - i0) / fs, anglePeaks };
+  }
+
+  function fmt(v, d) { return v == null || !isFinite(v) ? "–" : v.toFixed(d); }
+
+  function renderResults() {
+    const ex = EXERCISES[S.exercise], n = S.engine.committed.length;
+    S.result = analyzeRecording();
+    const R = S.result;
+    show("results");
+    $("#resNum").textContent = String(n);
+    $("#resWhat").textContent = (n === 1 ? ex.name.replace(/s$/, "") : ex.name) + (S.mode === "sim" ? " (simulated)" : "");
+    const when = new Date();
+    S.when = when;
+    $("#resWhen").textContent = when.toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
+    const reps = R ? R.A.reps : [];
+    const meanDown = reps.length ? RC.mean(reps.map((r) => r.ecc)) : null;
+    const meanUp = reps.length ? RC.mean(reps.map((r) => r.con)) : null;
+    const rate = R && R.rr ? 60 * R.rr.fInterp : null;
+    $("#resRate").textContent = fmt(rate, 0);
+    $("#resDown").textContent = fmt(meanDown, 1);
+    $("#resUp").textContent = fmt(meanUp, 1);
+    const empty = $("#resEmpty");
+    empty.hidden = n > 0;
+    empty.textContent = "No reps detected. Check the placement (" + ex.where.toLowerCase() + ") and that the start position matches how you began.";
+
+    const list = $("#repList");
+    list.innerHTML = "";
+    const longest = Math.max(1, ...reps.map((r) => r.ecc + r.con));
+    reps.forEach((r) => {
+      const li = document.createElement("li");
+      const dW = 100 * r.ecc / longest, uW = 100 * r.con / longest;
+      li.innerHTML = `<span class="n">${r.rep}</span><span class="bars"><span class="d" style="width:${dW}%"></span><span class="u" style="width:${uW}%"></span></span><span class="s">${r.ecc.toFixed(1)} down, ${r.con.toFixed(1)} up</span>`;
+      list.appendChild(li);
+    });
+
+    const m = $("#methods");
+    m.innerHTML = "";
+    const row = (label, value, note) => {
+      const d = document.createElement("div");
+      d.innerHTML = `<span></span><b></b><small></small>`;
+      d.children[0].textContent = label; d.children[1].textContent = value; d.children[2].textContent = note;
+      m.appendChild(d);
+    };
+    row("Live count (limb angle)", String(n), "Peaks in the angle between the phone and its start position: one per rep.");
+    if (R) {
+      row("Displacement method", String(R.A.dips.length), "|a| minus its mean is about the vertical acceleration. Integrated twice in the frequency domain, H(f) = −1/(2πf)², it gives height: one dip per rep.");
+      if (R.rr) row("FFT estimate", `${(R.rr.fInterp * R.T).toFixed(1)}`, `Biggest spectral peak ${R.rr.fInterp.toFixed(3)} Hz × ${R.T.toFixed(1)} s of movement. Bins are Δf = fs/N = ${R.rr.df.toFixed(3)} Hz apart, so this is only good to about ±1 rep.`);
+      row("Sample rate", `${R.fs.toFixed(0)} Hz`, "Reps live below 3 Hz, so anything above 6 Hz satisfies Nyquist.");
+    }
+    requestAnimationFrame(() => {
+      if (R) drawSet($("#setplot"), R, S.engine.committed);
+      if (R && R.rr) drawSpectrum($("#spec"), R.rr, R.A.band);
+    });
+    $("#saveStatus").textContent = "";
+    saveHistory({ when: when.toISOString(), exercise: S.exercise, reps: n, down: meanDown, up: meanUp, rate, sim: S.mode === "sim" });
+  }
+
+  $("#againBtn").addEventListener("click", () => { S = null; show("setup"); });
+
+  // ---------------------------------------------------------- export
+  $("#saveBtn").addEventListener("click", async () => {
+    if (!S || !S.raw.length) return;
+    const st = $("#saveStatus");
+    const lines = ['"Time (s)","Acceleration x (m/s^2)","Acceleration y (m/s^2)","Acceleration z (m/s^2)","Absolute acceleration (m/s^2)"'];
+    for (const [t, x, y, z] of S.raw) lines.push([t.toFixed(4), x.toFixed(5), y.toFixed(5), z.toFixed(5), Math.hypot(x, y, z).toFixed(5)].join(","));
+    const d = S.when || new Date(), pad = (v) => String(v).padStart(2, "0");
+    const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+    const filename = `${S.exercise}_${S.start}_${stamp}${S.mode === "sim" ? "_sim" : ""}.csv`;
+    const text = lines.join("\n") + "\n";
+    try {
+      const dl = window.claude && window.claude.use ? await window.claude.use("downloads") : null;
+      if (dl) { await dl.save({ filename, data: text }); st.textContent = "Saved " + filename; return; }
+    } catch (e) {
+      if (e && e.code === "declined") { st.textContent = "Not saved."; return; }
+    }
+    try {
+      const file = new File([text], filename, { type: "text/csv" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: filename }); st.textContent = "Shared " + filename; return; }
+    } catch (e) { if (e && e.name === "AbortError") { st.textContent = "Not saved."; return; } }
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: "text/csv" }));
+      const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      st.textContent = "Downloading " + filename;
+    } catch (e) { st.textContent = "Saving files isn’t available in this view."; }
+  });
+
+  // ---------------------------------------------------------- history
+  function saveHistory(item) {
+    const h = store.get("history", []);
+    h.unshift(item);
+    store.set("history", h.slice(0, 40));
+  }
+  $("#historyBtn").addEventListener("click", () => {
+    if (S && S.recording) return;
+    const h = store.get("history", []);
+    const ul = $("#historyList");
+    ul.innerHTML = "";
+    $("#historyEmpty").hidden = h.length > 0;
+    for (const it of h) {
+      const li = document.createElement("li");
+      const when = new Date(it.when);
+      const tempo = it.down != null ? `${it.down.toFixed(1)} s down, ${it.up.toFixed(1)} s up` : "No tempo";
+      li.innerHTML = `<span class="hn"></span><span class="hw"></span><span class="hd"></span>`;
+      li.children[0].textContent = it.reps;
+      li.children[1].textContent = EXERCISES[it.exercise].name + (it.sim ? " (simulated)" : "");
+      li.children[2].textContent = when.toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + ", " + tempo;
+      ul.appendChild(li);
+    }
+    show("history");
+  });
+  $("#backBtn").addEventListener("click", () => show(S && S.result ? "results" : "setup"));
+
+  // ---------------------------------------------------------- drawing
+  function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function prep(canvas) {
+    const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    const c = canvas.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, w, h);
+    return { c, w, h };
+  }
+  function scaler(lo, hi, a, b) { const k = (b - a) / ((hi - lo) || 1); return (v) => a + (v - lo) * k; }
+
+  function drawTrace(canvas, tr, committed) {
+    const { c, w, h } = prep(canvas);
+    const t0 = tr.tEnd - 12, X = scaler(t0, tr.tEnd, 0, w);
+    let lo = Infinity, hi = -Infinity;
+    for (const v of tr.d) { lo = Math.min(lo, v); hi = Math.max(hi, v); }
+    const pad = (hi - lo) * 0.12 || 1, Y = scaler(lo - pad, hi + pad, h - 4, 4);
+    c.strokeStyle = css("--rule"); c.lineWidth = 1;
+    c.beginPath(); c.moveTo(0, h - 0.5); c.lineTo(w, h - 0.5); c.stroke();
+    const settled = tr.tEnd - 0.5;
+    c.lineWidth = 2.5; c.lineJoin = "round";
+    c.strokeStyle = css("--ink");
+    c.beginPath();
+    let started = false;
+    for (let i = 0; i < tr.t.length; i++) {
+      if (tr.t[i] > settled) break;
+      const x = X(tr.t[i]), y = Y(tr.d[i]);
+      started ? c.lineTo(x, y) : c.moveTo(x, y); started = true;
+    }
+    c.stroke();
+    c.globalAlpha = 0.35; c.setLineDash([4, 4]); c.beginPath(); started = false;
+    for (let i = 0; i < tr.t.length; i++) {
+      if (tr.t[i] < settled - 0.05) continue;
+      const x = X(tr.t[i]), y = Y(tr.d[i]);
+      started ? c.lineTo(x, y) : c.moveTo(x, y); started = true;
+    }
+    c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+    c.fillStyle = css("--go");
+    for (const tc of committed) {
+      if (tc < t0) continue;
+      const x = X(tc);
+      c.fillRect(x - 1.5, 0, 3, h);
+    }
+  }
+
+  function drawSet(canvas, R, committed) {
+    const { c, w, h } = prep(canvas);
+    const t = R.t, y = R.theta, L = 30, B = h - 22, TOP = 20;
+    const t0 = Math.max(t[0], R.A.active[0] - 1), t1 = Math.min(t[t.length - 1], R.A.active[1] + 1);
+    const X = scaler(t0, t1, L, w - 4);
+    let hi = 0; for (let i = 0; i < y.length; i++) if (t[i] >= t0 && t[i] <= t1) hi = Math.max(hi, y[i]);
+    const top = S.start === "top";
+    const Y = scaler(0, hi * 1.05 || 1, top ? TOP : B, top ? B : TOP); // the line goes down when you go down
+    for (const r of R.A.reps) {
+      c.fillStyle = css("--lower"); c.globalAlpha = 0.18; c.fillRect(X(r.eccStart), TOP, X(r.eccEnd) - X(r.eccStart), B - TOP);
+      c.fillStyle = css("--lift"); c.fillRect(X(r.conStart), TOP, X(r.conEnd) - X(r.conStart), B - TOP);
+    }
+    c.globalAlpha = 1;
+    c.strokeStyle = css("--ink"); c.lineWidth = 2; c.beginPath();
+    let s = false;
+    for (let i = 0; i < t.length; i++) { if (t[i] < t0 || t[i] > t1) continue; const px = X(t[i]), py = Y(y[i]); s ? c.lineTo(px, py) : c.moveTo(px, py); s = true; }
+    c.stroke();
+    c.fillStyle = css("--ink"); c.font = `700 12px ${css("--text")}`; c.textAlign = "center";
+    committed.forEach((tc, k) => {
+      if (tc < t0 || tc > t1) return;
+      const i = Math.min(y.length - 1, Math.max(0, Math.round((tc - t[0]) * R.fs)));
+      const px = X(tc), py = Y(y[i]);
+      c.beginPath(); c.arc(px, py, 4, 0, 2 * Math.PI); c.fill();
+      c.fillText(String(k + 1), px, 13);
+    });
+    c.fillStyle = css("--muted"); c.font = `12px ${css("--text")}`; c.textAlign = "left";
+    c.fillText("0 s", L, h - 5); c.textAlign = "right"; c.fillText(`${(t1 - t0).toFixed(0)} s`, w - 4, h - 5);
+    c.save(); c.translate(11, B / 2); c.rotate(-Math.PI / 2); c.textAlign = "center"; c.fillText("limb angle", 0, 0); c.restore();
+  }
+
+  function drawSpectrum(canvas, rr, band) {
+    const { c, w, h } = prep(canvas);
+    const B = h - 20, X = scaler(0, 4, 4, w - 4);
+    let hi = 0; for (let i = 0; i < rr.fSpec.length; i++) if (rr.fSpec[i] <= 4) hi = Math.max(hi, rr.ASpec[i]);
+    const Y = scaler(0, hi * 1.05 || 1, B, 22);
+    c.fillStyle = css("--rule"); c.globalAlpha = 0.5; c.fillRect(X(band[0]), 0, X(band[1]) - X(band[0]), B); c.globalAlpha = 1;
+    c.strokeStyle = css("--ink"); c.lineWidth = 1.6; c.beginPath();
+    let s = false;
+    for (let i = 0; i < rr.fSpec.length && rr.fSpec[i] <= 4; i++) { const px = X(rr.fSpec[i]), py = Y(rr.ASpec[i]); s ? c.lineTo(px, py) : c.moveTo(px, py); s = true; }
+    c.stroke();
+    c.strokeStyle = css("--lift"); c.setLineDash([4, 3]); c.beginPath(); c.moveTo(X(rr.fInterp), 0); c.lineTo(X(rr.fInterp), B); c.stroke(); c.setLineDash([]);
+    c.fillStyle = css("--muted"); c.font = `12px ${css("--text")}`;
+    c.textAlign = "left"; c.fillText("0 Hz", 4, h - 4);
+    c.textAlign = "right"; c.fillText("4 Hz", w - 4, h - 4);
+    c.textAlign = "left"; c.fillStyle = css("--lift"); c.font = `700 12px ${css("--text")}`;
+    c.fillText(`rep rate ${rr.fInterp.toFixed(2)} Hz`, Math.min(w - 110, X(rr.fInterp) + 6), 14);
+  }
+
+  window.addEventListener("resize", () => {
+    if (S && S.result && !$("#results").hidden) { drawSet($("#setplot"), S.result, S.engine.committed); if (S.result.rr) drawSpectrum($("#spec"), S.result.rr, S.result.A.band); }
+  });
+
+  // Test hook (used by the automated tests only).
+  window.__repcounter = { get session() { return S; } };
+})();
+
+</script>
+
+<script>
+// Offline support when served from GitHub Pages (or localhost while testing).
+if ("serviceWorker" in navigator && window.top === window &&
+    (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+</script>
+</body>
+</html>
